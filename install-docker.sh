@@ -47,13 +47,17 @@ apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y curl wget gnupg ca-certificates lsb-release
 
 # 统一清理脚本之前错误写入的 Docker 源，避免 Ubuntu 使用 linux/debian。
+# 该清理步骤不是安装必需步骤，任何异常都不能阻止后续安装。
+set +e
 rm -f /etc/apt/sources.list.d/docker.list /etc/apt/sources.list.d/docker-ce.list
-# grep 没有匹配时返回 1；在 set -e/pipefail 下必须显式忽略，否则脚本会提前退出。
-while IFS= read -r -d '' source_file; do
-  if grep -qE 'download\.docker\.com/linux/debian|mirrors\.tuna\.tsinghua\.edu\.cn/docker-ce/linux/debian' "$source_file"; then
+if [[ -d /etc/apt/sources.list.d ]]; then
+  for source_file in /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+    [[ -f "$source_file" ]] || continue
+    grep -qE 'download\.docker\.com/linux/debian|mirrors\.tuna\.tsinghua\.edu\.cn/docker-ce/linux/debian' "$source_file" || continue
     sed -i '/download\.docker\.com\/linux\/debian/d;/mirrors\.tuna\.tsinghua\.edu\.cn\/docker-ce\/linux\/debian/d' "$source_file"
-  fi
-done < <(find /etc/apt/sources.list.d -maxdepth 1 -type f \( -name '*.list' -o -name '*.sources' \) -print0 2>/dev/null)
+  done
+fi
+set -e
 
 printf '\n[2/5] 配置 Docker apt 源...\n'
 CHOICE=1
