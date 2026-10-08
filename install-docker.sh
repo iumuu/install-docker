@@ -46,18 +46,9 @@ echo '[1/5] 安装必要依赖...'
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y curl wget gnupg ca-certificates lsb-release
 
-# 统一清理脚本之前错误写入的 Docker 源，避免 Ubuntu 使用 linux/debian。
-# 该清理步骤不是安装必需步骤，任何异常都不能阻止后续安装。
-set +e
-rm -f /etc/apt/sources.list.d/docker.list /etc/apt/sources.list.d/docker-ce.list
-if [[ -d /etc/apt/sources.list.d ]]; then
-  for source_file in /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
-    [[ -f "$source_file" ]] || continue
-    grep -qE 'download\.docker\.com/linux/debian|mirrors\.tuna\.tsinghua\.edu\.cn/docker-ce/linux/debian' "$source_file" || continue
-    sed -i '/download\.docker\.com\/linux\/debian/d;/mirrors\.tuna\.tsinghua\.edu\.cn\/docker-ce\/linux\/debian/d' "$source_file"
-  done
-fi
-set -e
+# 直接覆盖 Docker 源文件；不扫描其他 APT 文件，避免影响系统源。
+# 旧的 docker.list 会被下面的正确配置覆盖。
+rm -f /etc/apt/sources.list.d/docker-ce.list
 
 printf '\n[2/5] 配置 Docker apt 源...\n'
 CHOICE=1
